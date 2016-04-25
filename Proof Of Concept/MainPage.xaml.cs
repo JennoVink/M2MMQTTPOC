@@ -1,24 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
-using Windows.UI.ViewManagement;
-using Windows.UI.Xaml;
+using Windows.ApplicationModel.Core;
+using Windows.UI.Core;
+using Windows.UI.Popups;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
-using Windows.UI.Xaml.Navigation;
+using Windows.UI.Xaml.Media.Animation;
+using Windows.UI.Xaml.Media.Imaging;
 using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
-
-// The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
+using WinRTXamlToolkit.Controls;
 
 namespace Proof_Of_Concept
 {
@@ -30,11 +20,11 @@ namespace Proof_Of_Concept
         public MainPage()
         {
             this.InitializeComponent();   
-            Debug.WriteLine("Hello");
-            init();
+            initMQTT();
+            TemperatureImage.Source = new BitmapImage(new Uri(base.BaseUri, "/assets/temp-1.png"));
         }
 
-        public void init()
+        public void initMQTT()
         {
             // create client instance 
             MqttClient client = new MqttClient("server.drewes-webdesign.nl", 1883, false, MqttSslProtocols.None);
@@ -44,20 +34,84 @@ namespace Proof_Of_Concept
 
             string clientId = Guid.NewGuid().ToString();
             client.Connect(clientId, "inf2g", "!_pass12", true, 60);
-            Debug.WriteLine("Is connected? " + client.IsConnected);
 
             // subscribe to the topic "/home/temperature" with QoS 2 
-            client.Subscribe(new string[] { "test/testPOC" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE});
-            client.Subscribe(new string[] { "power/solar/temp" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
-
+            client.Subscribe(new string[] { "POC/temperature" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE});
+            client.Subscribe(new string[] { "POC/humidity" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
         }
 
-        static void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
+        private void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
         {
-            Debug.WriteLine("------------ You've recieved a message! ----------");
-            Debug.WriteLine("Topic: " + e.Topic);
-            Debug.WriteLine("vertaald: " + System.Text.Encoding.ASCII.GetString(e.Message));    
-            Debug.WriteLine("------------------ End of message ----------------");
+            if (e.Topic == "POC/temperature")
+            {
+                try
+                {
+                    var temp = int.Parse(System.Text.Encoding.ASCII.GetString(e.Message));
+                    var uri = "";
+                    if (temp < 20)
+                    {
+                        uri = "/assets/temp-1.png";
+                    }
+                    else if (temp < 25)
+                    {
+                        uri = "/assets/temp-2.png";
+                    }
+                    else if (temp < 30)
+                    {
+                        uri = "/assets/temp-3.png";
+                    }
+                    else
+                    {
+                        uri = "/assets/temp-4.png";
+                    }
+
+                    CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                            () =>
+                            {
+                                TemperatureImage.Source = new BitmapImage(new Uri(base.BaseUri, uri));
+                            });
+                }
+                catch (Exception)
+                {
+                    Debug.WriteLine("error!");;
+                    CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                        () =>
+                        {
+                            var dialog = new MessageDialog("Error parsing temperature to int!");
+                            dialog.Title = "Error";
+                            dialog.Commands.Add(new UICommand { Label = "Ok", Id = 0 });
+                            dialog.ShowAsync();
+                        });
+
+                }
+            }
+
+            if (e.Topic == "POC/humidity")
+            {
+                try
+                {
+                    var hum = int.Parse(System.Text.Encoding.ASCII.GetString(e.Message));
+
+                    CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                            () =>
+                            {
+                                humidityGauge.Value = hum;
+                            });
+                }
+                catch (Exception)
+                {
+                    Debug.WriteLine("error!"); ;
+                    CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                        () =>
+                        {
+                            var dialog = new MessageDialog("Error parsing temperature to int!");
+                            dialog.Title = "Error";
+                            dialog.Commands.Add(new UICommand { Label = "Ok", Id = 0 });
+                            dialog.ShowAsync();
+                        });
+
+                }
+            }
         }
         
     }
