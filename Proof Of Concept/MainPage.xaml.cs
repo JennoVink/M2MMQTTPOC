@@ -22,6 +22,7 @@ namespace Proof_Of_Concept
             this.InitializeComponent();   
             initMQTT();
             TemperatureImage.Source = new BitmapImage(new Uri(base.BaseUri, "/assets/temp-1.png"));
+            humidityGauge.Value = 0;
         }
 
         public void initMQTT()
@@ -69,6 +70,7 @@ namespace Proof_Of_Concept
                             () =>
                             {
                                 TemperatureImage.Source = new BitmapImage(new Uri(base.BaseUri, uri));
+                                temperature.Text = temp + "C";
                             });
                 }
                 catch (Exception)
