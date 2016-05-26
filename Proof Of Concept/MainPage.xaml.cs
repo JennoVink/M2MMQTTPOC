@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Text;
 using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
 using Windows.UI.Popups;
@@ -25,10 +26,14 @@ namespace Proof_Of_Concept
             humidityGauge.Value = 0;
         }
 
+        private Boolean light;
+
+        private MqttClient client;
+
         public void initMQTT()
         {
             // create client instance 
-            MqttClient client = new MqttClient("server.drewes-webdesign.nl", 1883, false, MqttSslProtocols.None);
+            client = new MqttClient("server.drewes-webdesign.nl", 1883, false, MqttSslProtocols.None);
             
             // register to message received 
             client.MqttMsgPublishReceived += client_MqttMsgPublishReceived;
@@ -115,6 +120,18 @@ namespace Proof_Of_Concept
                 }
             }
         }
-        
+
+        private void buttonBlink_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+            if (!light)
+            {
+                client.Publish("POC/light", Encoding.UTF8.GetBytes("true"));               
+            }
+            else
+            {
+                client.Publish("POC/light", Encoding.UTF8.GetBytes("false"));
+            }
+            light = !light;
+        }
     }
 }

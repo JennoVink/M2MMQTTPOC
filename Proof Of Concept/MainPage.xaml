@@ -11,8 +11,9 @@
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="Stenden Kas" VerticalAlignment="Top" FontSize="36" FontWeight="Bold"/>
         <TextBlock x:Name="temperature" Text="0C" HorizontalAlignment="Left" Margin="10,58,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontSize="20" />
-        <Image x:Name="TemperatureImage" HorizontalAlignment="Left" Height="533" Margin="10,97,0,0" VerticalAlignment="Top" Width="155"/>
-        <controls:Gauge x:Name="humidityGauge" Minimum="0" Maximum="100" NeedleBrush="Black" TrailBrush="Blue" TickBrush="White" ScaleBrush="Aqua" Value="0" ValueStringFormat="0\%" Unit="Humidity" Margin="170,63,10,10" />
+        <Image x:Name="TemperatureImage" HorizontalAlignment="Left" Height="253" Margin="10,97,0,0" VerticalAlignment="Top" Width="74"/>
+        <controls:Gauge x:Name="humidityGauge" Minimum="0" Maximum="100" NeedleBrush="Black" TrailBrush="Blue" TickBrush="White" ScaleBrush="Aqua" Value="0" ValueStringFormat="0\%" Unit="Humidity" Margin="89,97,347,10" />
+        <Button x:Name="buttonBlink" Content="Blink light" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="526,10,0,0" RenderTransformOrigin="-0.308,0.742" Width="104" Click="buttonBlink_Click"/>
 
     </Grid>
 </Page>
