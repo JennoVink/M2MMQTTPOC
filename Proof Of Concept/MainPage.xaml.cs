@@ -4,12 +4,12 @@ using System.Text;
 using Windows.ApplicationModel.Core;
 using Windows.UI.Core;
 using Windows.UI.Popups;
+using WinRTXamlToolkit.Controls;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Media.Animation;
 using Windows.UI.Xaml.Media.Imaging;
 using uPLibrary.Networking.M2Mqtt;
 using uPLibrary.Networking.M2Mqtt.Messages;
-using WinRTXamlToolkit.Controls;
 
 namespace Proof_Of_Concept
 {
