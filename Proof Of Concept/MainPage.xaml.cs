@@ -143,6 +143,7 @@ namespace Proof_Of_Concept
                     IUICommand result = await dialog.ShowAsync();
 
                     string returnStr = name + "|" + result.Label;
+                    Debug.WriteLine(returnStr);
                     string encryptedStr = Encrypt(returnStr, CryptoKey);
 
                     client.Publish("/app/pair", Encoding.UTF8.GetBytes(encryptedStr));
@@ -200,15 +201,15 @@ namespace Proof_Of_Concept
 
         private string Encrypt(string str, string key)
         {
-            IBuffer toDecryptBuffer = CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8);
+            IBuffer toEncryptBuffer = CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8);
 
             SymmetricKeyAlgorithmProvider aes = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesEcbPkcs7);
 
             CryptographicKey symetricKey = aes.CreateSymmetricKey(ComputeMD5(key));
 
-            IBuffer buffDecrypted = CryptographicEngine.Decrypt(symetricKey, toDecryptBuffer, null);
+            IBuffer buffEncrypted = CryptographicEngine.Encrypt(symetricKey, toEncryptBuffer, null);
 
-            return CryptographicBuffer.EncodeToBase64String(buffDecrypted);
+            return CryptographicBuffer.EncodeToBase64String(buffEncrypted);
         }
 
         private IBuffer ComputeMD5(string str)
