@@ -10,10 +10,21 @@
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <TextBlock x:Name="textBlock" HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="Stenden Kas" VerticalAlignment="Top" FontSize="36" FontWeight="Bold"/>
-        <TextBlock x:Name="temperature" Text="0C" HorizontalAlignment="Left" Margin="10,58,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontSize="20" />
-        <Image x:Name="TemperatureImage" HorizontalAlignment="Left" Height="253" Margin="10,97,0,0" VerticalAlignment="Top" Width="74"/>
-        <controls:Gauge x:Name="humidityGauge" Minimum="0" Maximum="100" NeedleBrush="Black" TrailBrush="Blue" TickBrush="White" ScaleBrush="Aqua" Value="0" ValueStringFormat="0\%" Unit="Humidity" Margin="129,63,205,10" />
-        <Button x:Name="buttonBlink" Content="Blink light" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="526,10,0,0" RenderTransformOrigin="-0.308,0.742" Width="104" Click="buttonBlink_Click" />
 
+
+        <Button x:Name="buttonBlink" Content="Blink light" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="241,26,0,0" RenderTransformOrigin="-0.308,0.742" Click="buttonBlink_Click" Width="104" />
+        <Grid Margin="0,63,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"></ColumnDefinition>
+                <ColumnDefinition Width="1*"></ColumnDefinition>
+                <ColumnDefinition Width="1*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" x:Name="temperature" Text="0C" HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" VerticalAlignment="Top" FontSize="20" />
+            <Image Grid.Column="0" x:Name="TemperatureImage" Margin="10,42,10,10"/>
+            <controls:Gauge Grid.Column="1" x:Name="humidityGauge" Minimum="0" Maximum="100" NeedleBrush="Black" TrailBrush="Blue" TickBrush="White" ScaleBrush="Aqua" Value="0" ValueStringFormat="0\%" Unit="Humidity" Margin="10" />
+            <TextBlock x:Name="textBlockTeachers" Grid.Column="2" HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="Available teachers:" VerticalAlignment="Top"/>
+            <ListView x:Name="teachersListView" Grid.Column="2" Margin="10,35,10,10"/>
+
+        </Grid>
     </Grid>
 </Page>

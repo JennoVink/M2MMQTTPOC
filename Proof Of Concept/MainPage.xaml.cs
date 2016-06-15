@@ -1,7 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using Windows.ApplicationModel.Core;
+using Windows.Security.Cryptography;
+using Windows.Security.Cryptography.Core;
+using Windows.Storage.Streams;
 using Windows.UI.Core;
 using Windows.UI.Popups;
 using WinRTXamlToolkit.Controls;
@@ -18,6 +24,9 @@ namespace Proof_Of_Concept
     /// </summary>
     public sealed partial class MainPage : Page
     {
+        private const string CryptoKey = "QbRFpLYP7x:BdtK64JrPe;a6}X^$@j`_";
+        private Dictionary<string, string>  _teacherDictionary = new Dictionary<string, string>();
+
         public MainPage()
         {
             this.InitializeComponent();   
@@ -44,15 +53,20 @@ namespace Proof_Of_Concept
             // subscribe to the topic "/home/temperature" with QoS 2 
             client.Subscribe(new string[] { "POC/temperature" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE});
             client.Subscribe(new string[] { "POC/humidity" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+            client.Subscribe(new string[] { "POC/humidity" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+            client.Subscribe(new string[] { "/app/present/#" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
+            client.Subscribe(new string[] { "/app/pair/request" }, new byte[] { MqttMsgBase.QOS_LEVEL_AT_MOST_ONCE });
         }
 
-        private void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
+        private async void client_MqttMsgPublishReceived(object sender, MqttMsgPublishEventArgs e)
         {
+            string message = Encoding.UTF8.GetString(e.Message);
+
             if (e.Topic == "POC/temperature")
             {
                 try
                 {
-                    var temp = int.Parse(System.Text.Encoding.ASCII.GetString(e.Message));
+                    var temp = int.Parse(message);
                     var uri = "";
                     if (temp < 20)
                     {
@@ -71,7 +85,7 @@ namespace Proof_Of_Concept
                         uri = "/assets/temp-4.png";
                     }
 
-                    CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                    await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
                             () =>
                             {
                                 TemperatureImage.Source = new BitmapImage(new Uri(base.BaseUri, uri));
@@ -80,14 +94,12 @@ namespace Proof_Of_Concept
                 }
                 catch (Exception)
                 {
-                    Debug.WriteLine("error!");;
-                    CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                        () =>
+                    Debug.WriteLine("error!"); ;
+                    await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
                         {
-                            var dialog = new MessageDialog("Error parsing temperature to int!");
-                            dialog.Title = "Error";
+                            var dialog = new MessageDialog("Error parsing temperature to int!") {Title = "Error"};
                             dialog.Commands.Add(new UICommand { Label = "Ok", Id = 0 });
-                            dialog.ShowAsync();
+                            await dialog.ShowAsync();
                         });
 
                 }
@@ -97,9 +109,9 @@ namespace Proof_Of_Concept
             {
                 try
                 {
-                    var hum = int.Parse(System.Text.Encoding.ASCII.GetString(e.Message));
+                    var hum = int.Parse(message);
 
-                    CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                    await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
                             () =>
                             {
                                 humidityGauge.Value = hum;
@@ -108,15 +120,54 @@ namespace Proof_Of_Concept
                 catch (Exception)
                 {
                     Debug.WriteLine("error!"); ;
-                    CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
-                        () =>
+                    await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
                         {
-                            var dialog = new MessageDialog("Error parsing temperature to int!");
-                            dialog.Title = "Error";
+                            var dialog = new MessageDialog("Error parsing temperature to int!") {Title = "Error"};
                             dialog.Commands.Add(new UICommand { Label = "Ok", Id = 0 });
-                            dialog.ShowAsync();
+                            await dialog.ShowAsync();
                         });
 
+                }
+            }
+
+            if (e.Topic == "/app/pair/request")
+            {
+                var name = Decrypt(message, CryptoKey);
+
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
+                {
+                    var dialog = new MessageDialog("Accept pair request for: " + name) { Title = "Pair request" };
+                    dialog.Commands.Add(new UICommand { Label = "Yes", Id = 0 });
+                    dialog.Commands.Add(new UICommand { Label = "No", Id = 1 });
+
+                    IUICommand result = await dialog.ShowAsync();
+
+                    string returnStr = name + "|" + result.Label;
+                    string encryptedStr = Encrypt(returnStr, CryptoKey);
+
+                    client.Publish("/app/pair", Encoding.UTF8.GetBytes(encryptedStr));
+
+                    _teacherDictionary.Add(returnStr, name);
+                });
+            }
+
+            if (e.Topic == "/app/present/yes")
+            {
+                string decrypted = Decrypt(message, CryptoKey);
+
+                if (_teacherDictionary.ContainsKey(decrypted))
+                {
+                    this.teachersListView.Items?.Add(new TextBlock() {Text = _teacherDictionary[decrypted]});
+                }
+            }
+
+            if (e.Topic == "/app/present/no")
+            {
+                string decrypted = Decrypt(message, CryptoKey);
+
+                if (_teacherDictionary.ContainsKey(decrypted) && this.teachersListView.Items.Contains(new TextBlock() { Text = _teacherDictionary[decrypted] }))
+                {
+                    this.teachersListView.Items.Remove(new TextBlock() { Text = _teacherDictionary[decrypted] });
                 }
             }
         }
@@ -132,6 +183,54 @@ namespace Proof_Of_Concept
                 client.Publish("POC/light", Encoding.UTF8.GetBytes("false"));
             }
             light = !light;
+        }
+
+        private string Decrypt(string str, string key)
+        {
+            IBuffer toDecryptBuffer = CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8);
+
+            SymmetricKeyAlgorithmProvider aes = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesEcb);
+
+            CryptographicKey symetricKey = aes.CreateSymmetricKey(ComputeMD5(key));
+
+            IBuffer buffDecrypted = CryptographicEngine.Decrypt(symetricKey, toDecryptBuffer, null);
+
+            return CryptographicBuffer.EncodeToBase64String(buffDecrypted);
+        }
+
+        private string Encrypt(string str, string key)
+        {
+            IBuffer toDecryptBuffer = CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8);
+
+            SymmetricKeyAlgorithmProvider aes = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesEcb);
+
+            CryptographicKey symetricKey = aes.CreateSymmetricKey(ComputeMD5(key));
+
+            IBuffer buffDecrypted = CryptographicEngine.Decrypt(symetricKey, toDecryptBuffer, null);
+
+            return CryptographicBuffer.ConvertBinaryToString(BinaryStringEncoding.Utf8 ,buffDecrypted);
+        }
+
+        private IBuffer ComputeMD5(string str)
+        {
+            try
+            {
+                var alg = HashAlgorithmProvider.OpenAlgorithm("MD5");
+
+                IBuffer buff = CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8);
+
+                IBuffer hash = alg.HashData(buff);
+
+                byte[] hashBytes = hash.ToArray();
+
+                Array.Resize(ref hashBytes, 16);
+
+                return CryptographicBuffer.CreateFromByteArray(hashBytes);
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
     }
 }
