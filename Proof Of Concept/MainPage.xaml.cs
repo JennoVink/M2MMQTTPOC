@@ -187,28 +187,28 @@ namespace Proof_Of_Concept
 
         private string Decrypt(string str, string key)
         {
-            IBuffer toDecryptBuffer = CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8);
+            IBuffer toDecryptBuffer = CryptographicBuffer.DecodeFromBase64String(str);
 
-            SymmetricKeyAlgorithmProvider aes = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesEcb);
-
-            CryptographicKey symetricKey = aes.CreateSymmetricKey(ComputeMD5(key));
-
-            IBuffer buffDecrypted = CryptographicEngine.Decrypt(symetricKey, toDecryptBuffer, null);
-
-            return CryptographicBuffer.EncodeToBase64String(buffDecrypted);
-        }
-
-        private string Encrypt(string str, string key)
-        {
-            IBuffer toDecryptBuffer = CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8);
-
-            SymmetricKeyAlgorithmProvider aes = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesEcb);
+            SymmetricKeyAlgorithmProvider aes = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesEcbPkcs7);
 
             CryptographicKey symetricKey = aes.CreateSymmetricKey(ComputeMD5(key));
 
             IBuffer buffDecrypted = CryptographicEngine.Decrypt(symetricKey, toDecryptBuffer, null);
 
             return CryptographicBuffer.ConvertBinaryToString(BinaryStringEncoding.Utf8 ,buffDecrypted);
+        }
+
+        private string Encrypt(string str, string key)
+        {
+            IBuffer toDecryptBuffer = CryptographicBuffer.ConvertStringToBinary(str, BinaryStringEncoding.Utf8);
+
+            SymmetricKeyAlgorithmProvider aes = SymmetricKeyAlgorithmProvider.OpenAlgorithm(SymmetricAlgorithmNames.AesEcbPkcs7);
+
+            CryptographicKey symetricKey = aes.CreateSymmetricKey(ComputeMD5(key));
+
+            IBuffer buffDecrypted = CryptographicEngine.Decrypt(symetricKey, toDecryptBuffer, null);
+
+            return CryptographicBuffer.EncodeToBase64String(buffDecrypted);
         }
 
         private IBuffer ComputeMD5(string str)
