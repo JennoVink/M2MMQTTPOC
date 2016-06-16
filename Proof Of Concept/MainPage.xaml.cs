@@ -148,7 +148,10 @@ namespace Proof_Of_Concept
 
                     client.Publish("/app/pair", Encoding.UTF8.GetBytes(encryptedStr));
 
-                    _teacherDictionary.Add(returnStr, name);
+                    if (result.Label == "Yes" && !_teacherDictionary.ContainsKey(returnStr))
+                    {
+                        _teacherDictionary.Add(returnStr, name);
+                    }
                 });
             }
 
