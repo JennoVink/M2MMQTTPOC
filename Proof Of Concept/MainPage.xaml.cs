@@ -25,7 +25,8 @@ namespace Proof_Of_Concept
     public sealed partial class MainPage : Page
     {
         private const string CryptoKey = "QbRFpLYP7x:BdtK64JrPe;a6}X^$@j`_";
-        private Dictionary<string, string>  _teacherDictionary = new Dictionary<string, string>();
+        private List<Teacher> _teacherList = new List<Teacher>();
+        private Dictionary<string, string> _teacherDictionary = new Dictionary<string, string>(); 
 
         public MainPage()
         {
@@ -33,9 +34,11 @@ namespace Proof_Of_Concept
             initMQTT();
             TemperatureImage.Source = new BitmapImage(new Uri(base.BaseUri, "/assets/temp-1.png"));
             humidityGauge.Value = 0;
+
+            teachersListView.ItemsSource = _teacherList;
         }
 
-        private Boolean light;
+        private bool light;
 
         private MqttClient client;
 
@@ -151,6 +154,7 @@ namespace Proof_Of_Concept
                     if (result.Label == "Yes" && !_teacherDictionary.ContainsKey(returnStr))
                     {
                         _teacherDictionary.Add(returnStr, name);
+                        Debug.WriteLine("Added " + name + " to the dictionary!");
                     }
                 });
             }
@@ -159,20 +163,51 @@ namespace Proof_Of_Concept
             {
                 string decrypted = Decrypt(message, CryptoKey);
 
-                if (_teacherDictionary.ContainsKey(decrypted))
-                {
-                    this.teachersListView.Items?.Add(new TextBlock() {Text = _teacherDictionary[decrypted]});
-                }
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                    () =>
+                    {
+                        if (_teacherDictionary.ContainsKey(decrypted))
+                        {
+                            Debug.WriteLine(decrypted + " is present");
+                            _teacherList.Add(new Teacher { Name = _teacherDictionary[decrypted], Message = decrypted });
+                            teachersListView.ItemsSource = null;
+                            teachersListView.ItemsSource = _teacherList;
+                        }
+                        else
+                        {
+                            Debug.WriteLine(decrypted + " is not in dictionary, sending to /app/error");
+                            client.Publish("/app/error", Encoding.UTF8.GetBytes(message));
+                        }
+                    });
+                       
             }
 
             if (e.Topic == "/app/present/no")
             {
                 string decrypted = Decrypt(message, CryptoKey);
+                
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                    () =>
+                    {
+                        if (_teacherDictionary.ContainsKey(decrypted))
+                        {
+                            Debug.WriteLine(decrypted + " is not present");
+                            Teacher teacher = _teacherList.Find(i => i.Message == decrypted);
 
-                if (_teacherDictionary.ContainsKey(decrypted) && this.teachersListView.Items.Contains(new TextBlock() { Text = _teacherDictionary[decrypted] }))
-                {
-                    this.teachersListView.Items.Remove(new TextBlock() { Text = _teacherDictionary[decrypted] });
-                }
+                            if (teacher != null)
+                            {
+                                _teacherList.Remove(teacher);
+                                teachersListView.ItemsSource = null;
+                                teachersListView.ItemsSource = _teacherList;
+                            }
+                           
+                        }
+                        else
+                        {
+                            Debug.WriteLine(decrypted + " is not in dictionary, sending to /app/error");
+                            client.Publish("/app/error", Encoding.UTF8.GetBytes(message));
+                        }
+                    });
             }
         }
 
@@ -235,6 +270,12 @@ namespace Proof_Of_Concept
             {
                 return null;
             }
+        }
+
+        public class Teacher
+        {
+            public string Name { get; set; }
+            public string Message { get; set; }
         }
     }
 }
