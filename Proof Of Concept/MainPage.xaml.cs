@@ -169,9 +169,14 @@ namespace Proof_Of_Concept
                         if (_teacherDictionary.ContainsKey(decrypted))
                         {
                             Debug.WriteLine(decrypted + " is present");
-                            _teacherList.Add(new Teacher { Name = _teacherDictionary[decrypted], Message = decrypted });
-                            teachersListView.ItemsSource = null;
-                            teachersListView.ItemsSource = _teacherList;
+                            Teacher teacher = _teacherList.Find(i => i.Message == decrypted);
+
+                            if (teacher == null)
+                            {
+                                _teacherList.Add(new Teacher {Message = decrypted, Name = _teacherDictionary[decrypted]});
+                                teachersListView.ItemsSource = null;
+                                teachersListView.ItemsSource = _teacherList;
+                            }
                         }
                         else
                         {
